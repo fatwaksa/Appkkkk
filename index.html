@@ -5,60 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>إرسال إشعار Telegram</title>
 <style>
-  body {
+body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #111; /* أسود */
+    background-color: #111;
     color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-  }
-  .container {
+}
+.container {
     background: #1a1a1a;
     padding: 30px 40px;
     border-radius: 15px;
     text-align: center;
     box-shadow: 0 0 20px rgba(255,165,0,0.4);
-    max-width: 400px;
+    max-width: 500px;
     width: 100%;
-  }
-  h1 {
-    color: #ff6600; /* برتقالي */
+}
+h1 {
+    color: #ff6600;
     margin-bottom: 20px;
-  }
-  select, textarea, button {
+}
+input, textarea, select, button {
     width: 100%;
     padding: 12px;
     margin-bottom: 15px;
     border-radius: 10px;
     border: none;
     font-size: 16px;
-  }
-  select {
+}
+input, select, textarea {
     background-color: #222;
     color: #fff;
-  }
-  textarea {
-    background-color: #222;
-    color: #fff;
-    resize: none;
-    height: 100px;
-  }
-  button {
+}
+textarea { resize: none; height: 100px; }
+button {
     background-color: #ff6600;
     color: #fff;
     cursor: pointer;
     transition: 0.3s;
-  }
-  button:hover {
-    background-color: #e55c00;
-  }
-  .status {
-    margin-top: 10px;
-    font-weight: bold;
-  }
+}
+button:hover { background-color: #e55c00; }
+.status { margin-top: 10px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -71,7 +61,10 @@
     <option value="series">مسلسل</option>
   </select>
   
-  <textarea id="messageInput" placeholder="اكتب الرسالة هنا"></textarea>
+  <input type="text" id="titleInput" placeholder="عنوان الفيلم / المسلسل">
+  <textarea id="storyInput" placeholder="القصة / الوصف"></textarea>
+  <input type="text" id="episodeInput" placeholder="رقم الحلقة (إن كان مسلسل)">
+  <input type="file" id="imageInput" accept="image/*">
   
   <button id="sendBtn">إرسال الإشعار</button>
   
@@ -80,42 +73,62 @@
 
 <script>
 const typeSelect = document.getElementById('typeSelect');
-const messageInput = document.getElementById('messageInput');
+const titleInput = document.getElementById('titleInput');
+const storyInput = document.getElementById('storyInput');
+const episodeInput = document.getElementById('episodeInput');
+const imageInput = document.getElementById('imageInput');
 const sendBtn = document.getElementById('sendBtn');
 const status = document.getElementById('status');
 
 typeSelect.addEventListener('change', () => {
-  const type = typeSelect.value;
-  if(type === 'movie') {
-    messageInput.placeholder = "اكتب إشعار الفيلم هنا...";
-  } else {
-    messageInput.placeholder = "اكتب إشعار المسلسل هنا...";
-  }
+    if(typeSelect.value === 'movie') {
+        episodeInput.style.display = 'none';
+    } else {
+        episodeInput.style.display = 'block';
+    }
 });
 
 sendBtn.addEventListener('click', async () => {
-  const message = `[${typeSelect.value.toUpperCase()}] ${messageInput.value}`;
-  
-  status.textContent = "جاري الإرسال...";
-  
-  try {
-    const response = await fetch('/api/send.py', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message})
-    });
-    const result = await response.json();
-    
-    if(result.status === "success") {
-      status.textContent = "تم الإرسال بنجاح!";
-      messageInput.value = "";
+    const message = {
+        type: typeSelect.value,
+        title: titleInput.value,
+        story: storyInput.value,
+        episode: episodeInput.value,
+        image: null
+    };
+
+    if(imageInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            message.image = e.target.result; // base64
+            await sendMessage(message);
+        };
+        reader.readAsDataURL(imageInput.files[0]);
     } else {
-      status.textContent = "فشل الإرسال: " + result.message;
+        await sendMessage(message);
     }
-  } catch(err) {
-    status.textContent = "خطأ: " + err;
-  }
 });
+
+async function sendMessage(message){
+    status.textContent = "جاري الإرسال...";
+    try {
+        const response = await fetch('/api/send.py', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(message)
+        });
+        const result = await response.json();
+        status.textContent = result.message;
+        if(result.status === "success"){
+            titleInput.value = "";
+            storyInput.value = "";
+            episodeInput.value = "";
+            imageInput.value = "";
+        }
+    } catch(err){
+        status.textContent = "خطأ: " + err;
+    }
+}
 </script>
 
 </body>
