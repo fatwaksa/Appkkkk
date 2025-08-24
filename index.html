@@ -3,72 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>إرسال إشعار Telegram</title>
+<title>إشعار أفلام ومسلسلات</title>
 <style>
-body {
-    margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #111;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-.container {
-    background: #1a1a1a;
-    padding: 30px 40px;
-    border-radius: 15px;
-    text-align: center;
-    box-shadow: 0 0 20px rgba(255,165,0,0.4);
-    max-width: 500px;
-    width: 100%;
-}
-h1 {
-    color: #ff6600;
-    margin-bottom: 20px;
-}
-input, textarea, select, button {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 10px;
-    border: none;
-    font-size: 16px;
-}
-input, select, textarea {
-    background-color: #222;
-    color: #fff;
-}
-textarea { resize: none; height: 100px; }
-button {
-    background-color: #ff6600;
-    color: #fff;
-    cursor: pointer;
-    transition: 0.3s;
-}
-button:hover { background-color: #e55c00; }
-.status { margin-top: 10px; font-weight: bold; }
+body { margin:0; font-family:sans-serif; background:#111; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh;}
+.container { background:#1a1a1a; padding:30px 40px; border-radius:15px; max-width:500px; width:100%; text-align:center; box-shadow:0 0 20px rgba(255,165,0,0.4);}
+h1 { color:#ff6600; margin-bottom:20px;}
+input, textarea, select, button { width:100%; padding:12px; margin-bottom:15px; border-radius:10px; border:none; font-size:16px;}
+input, select, textarea { background:#222; color:#fff;}
+textarea { resize:none; height:100px;}
+button { background:#ff6600; color:#fff; cursor:pointer; transition:.3s;}
+button:hover { background:#e55c00;}
+.status { margin-top:10px; font-weight:bold;}
 </style>
 </head>
 <body>
-
 <div class="container">
-  <h1>إرسال إشعار Telegram</h1>
-  
-  <select id="typeSelect">
-    <option value="movie">فيلم</option>
-    <option value="series">مسلسل</option>
-  </select>
-  
-  <input type="text" id="titleInput" placeholder="عنوان الفيلم / المسلسل">
-  <textarea id="storyInput" placeholder="القصة / الوصف"></textarea>
-  <input type="text" id="episodeInput" placeholder="رقم الحلقة (إن كان مسلسل)">
-  <input type="file" id="imageInput" accept="image/*">
-  
-  <button id="sendBtn">إرسال الإشعار</button>
-  
-  <div class="status" id="status"></div>
+<h1>إرسال إشعار Telegram</h1>
+<select id="typeSelect">
+<option value="movie">فيلم</option>
+<option value="series">مسلسل</option>
+</select>
+<input type="text" id="titleInput" placeholder="عنوان الفيلم / المسلسل">
+<textarea id="storyInput" placeholder="القصة / الوصف"></textarea>
+<input type="text" id="episodeInput" placeholder="رقم الحلقة (إن كان مسلسل)">
+<input type="text" id="imageInput" placeholder="رابط صورة الغلاف (اختياري)">
+<textarea id="improvementsInput" placeholder="التحسينات / ملاحظات إضافية"></textarea>
+<button id="sendBtn">إرسال الإشعار</button>
+<div class="status" id="status"></div>
 </div>
 
 <script>
@@ -77,15 +38,12 @@ const titleInput = document.getElementById('titleInput');
 const storyInput = document.getElementById('storyInput');
 const episodeInput = document.getElementById('episodeInput');
 const imageInput = document.getElementById('imageInput');
+const improvementsInput = document.getElementById('improvementsInput');
 const sendBtn = document.getElementById('sendBtn');
 const status = document.getElementById('status');
 
 typeSelect.addEventListener('change', () => {
-    if(typeSelect.value === 'movie') {
-        episodeInput.style.display = 'none';
-    } else {
-        episodeInput.style.display = 'block';
-    }
+    episodeInput.style.display = typeSelect.value === 'series' ? 'block' : 'none';
 });
 
 sendBtn.addEventListener('click', async () => {
@@ -94,42 +52,26 @@ sendBtn.addEventListener('click', async () => {
         title: titleInput.value,
         story: storyInput.value,
         episode: episodeInput.value,
-        image: null
+        image_url: imageInput.value,
+        improvements: improvementsInput.value
     };
 
-    if(imageInput.files.length > 0){
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            message.image = e.target.result; // base64
-            await sendMessage(message);
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-    } else {
-        await sendMessage(message);
-    }
-});
-
-async function sendMessage(message){
     status.textContent = "جاري الإرسال...";
     try {
-        const response = await fetch('/api/send.py', {
+        const response = await fetch('/api/send.js', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type':'application/json'},
             body: JSON.stringify(message)
         });
         const result = await response.json();
         status.textContent = result.message;
-        if(result.status === "success"){
-            titleInput.value = "";
-            storyInput.value = "";
-            episodeInput.value = "";
-            imageInput.value = "";
+        if(result.status==="success"){
+            titleInput.value=""; storyInput.value=""; episodeInput.value=""; imageInput.value=""; improvementsInput.value="";
         }
     } catch(err){
         status.textContent = "خطأ: " + err;
     }
-}
+});
 </script>
-
 </body>
 </html>
